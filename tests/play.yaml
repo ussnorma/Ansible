@@ -1,0 +1,50 @@
+- hosts: work_host
+  # gather_facts: False  # сбор фактов
+  # strategy: free    # задачи выполняются вне зависимости от хостов ,
+                      # т.е. на медленных хостах задачи выполнятся позже, 
+                       # каждая задача выполняемая на быстром хосте не будет ждать выполнения других задач на медленных хостах 
+  # serial: 1     #  указывает какое количество хостов можно прогнать за один play (если значение 1 то задачи сначала выполнятся на 1 , потом на 2 и т.д.)
+  vars:
+    var_01: "Hello"
+    var_02: True
+    var_03: 42
+  # Check ssh key:
+  pre_tasks:
+    - name: Set authorized key taken from file
+      authorized_key:
+        user: "{{ ansible_ssh_user }}"
+        state: present
+        key: "{{ item }}"
+      with_items:
+        - "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+      tags: 
+        - always                    # this tag will be using always except you if skip this tag
+  tasks:
+    - name: Print variables
+      debug: 
+        msg: "{{ var_01 }} | {{ var_02 }}  | {{ var_03 }}"
+      tags: "tag1"
+    - name: Print facts 1
+      debug:
+        msg: "{{ ansible_facts.mounts[0].block_used }}"
+      tags:
+        - fact1
+      # ignore_errors: yes
+    - name: Print facts 2
+      debug: 
+        msg: "{{ ansible_distribution }} | {{ ansible_distribution_version }}"
+      tags:
+        - fact2
+      # ignore_errors: yes
+    - name: Debug 1
+      debug:
+        msg: "Hi from {{ inventory_hostname }}"
+    - name: Debug 2
+      debug:
+        msg: "{{ hostvars[inventory_hostname] }}"
+      tags:
+        - never                     # this tag will never play , but if you wrote this tag in command , it would be use.
+
+
+# ansible-playbook -i inv.yaml play.yaml -t fact1,fact2               # command which desribe how to use tags
+# ansible-playbook -i inv.yaml play.yaml --skip-tags fact2            # command which desribe how to use tags

@@ -1,0 +1,114 @@
+---
+- name: Include deploy for Debian systems
+  include: http_deb.yaml
+  when: ansible_os_family == 'Debian'
+
+- name: Include deploy for RedHat systems
+  include: http_rh.yaml
+  when: ansible_os_family == 'RedHat'
+
+- name: NGINX. Make dir for sites.
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0775
+  loop:
+    - /var/www
+    - /var/www/example.com
+    - /var/www/example.com/html
+    - /var/www/test.com
+    - /var/www/test.com/html
+    - /etc/nginx/sites-available
+
+- name: Copy first page to Example.
+  copy: 
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: '0775'
+  loop:
+    - src: example.html
+      dest: "{{ example_home }}"
+    - src: test.html
+      dest: "{{ test_home }}"
+
+- name: NGINX. Create sites.com.
+  copy: 
+    src: "{{ item }}"
+    dest: "{{ sites }}"
+    owner: root
+    group: root
+    mode: '0775'
+  loop:
+    - example.com
+    - test.com
+
+- name: NGINX. Create symbolic link 
+  shell: |
+    ln -s /etc/nginx/sites-available/example.com /etc/nginx/sites-enabled/
+    ln -s /etc/nginx/sites-available/test.com /etc/nginx/sites-enabled/
+  tags: 
+    - once
+- name: NGINX. Remove default site.
+  file:
+    path: "/etc/nginx/sites-enabled/default"
+    state: absent
+  when: ansible_os_family == 'Debian'
+
+- name: NGINX. Hash size for Ubuntu.
+  lineinfile: 
+    path:  /etc/nginx/nginx.conf
+    regexp: '^ server_names_hash_bucket_size 64;'
+    insertafter: '^# server_names_hash_bucket_size 64;'
+    line: server_names_hash_bucket_size 64;
+  notify:
+    - restart nginx
+
+- name: Templates.
+  template:
+    src: "host.j2"
+    dest: "/etc/hosts"
+    owner: root
+    group: root
+    mode: '0644'
+    backup: yes
+
+- name: Check template.
+  shell: |
+    cat /etc/hosts
+  register: out1
+  changed_when: false
+
+- name: Print out1
+  debug:
+    msg: "{{ out1.stdout_lines }}"
+
+- name: Check content to the sites.
+  uri:
+    url: "http://{{ item.name }}"
+    return_content: yes
+  loop: "{{ virtual_hosts }}"
+  register: out
+  tags: 
+    - tests
+
+- name: Print out.
+  debug:
+    msg: "{{ out }}"
+  tags:
+    - tests
+
+- name: Check sudo with NOPASSWD
+  include: check_sudo.yaml
+
+- name: Check connection to sites
+  include: check_rep.yaml
+
+- name: Check connection to dockerhub.
+  include: check_docker.yaml
+
+- name: Check RAM/HDD
+  include: check_RAM_HDD.yaml

@@ -1,0 +1,12 @@
+cen_all: 
+  vars: 
+    ansible_ssh_user: root
+  children:
+    work_host:
+      hosts: 
+        work_01:
+          ansible_host: x.x.x.x
+    workshop_host: 
+      hosts: 
+        workshop_01: 
+          ansible_host: x.x.x.x

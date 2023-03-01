@@ -1,0 +1,20 @@
+---
+- name: Check connection to docker.
+  wait_for:
+    host: hub.docker.com
+    port: "80"
+    timeout: 3
+  register: out
+- name: Print out.
+  debug:
+    msg: "{{ out }}"
+
+- name: Check content to the sites.
+  uri:
+    url: "http://hub.docker.com"
+    return_content: yes
+  register: out1
+
+- name: Print out.
+  debug:
+    msg: "{{ out1 }}"

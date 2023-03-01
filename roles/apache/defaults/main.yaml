@@ -1,0 +1,14 @@
+apt_http_packages:
+  - apache2
+
+yum_http_packages:
+  - httpd
+
+default_home: "/var/www/html"
+
+site_deb: "local-deb.site"
+site_rh: "local-rh.site"
+
+virtual_hosts:
+  - { name: "{{ site_deb }}", ip: "{{ hostvars[\"work_01\"].ansible_host }}"}
+ # - { name: "{{ site_rh }}", ip: "{{ hostvars[\"workshop_01\"].ansible_host }}"}
